@@ -11,10 +11,45 @@
           <q-route-tab to="/" name="principal" icon="home" label="Principal" />
         </q-tabs>
         <q-space />
-        <q-btn @click="openCadastrarUsuarioModal()" class="q-ma-xs" color="black" label="Registrar Usuário" />
-        <q-btn @click="openLoginModal()" class="q-ma-xs" color="black" label="Login" />
+        <q-btn @click="openConfigurarUrlModal()" class="q-ma-xs" color="black" label="Configurar Endereço" />
+        <div v-if="this.$q.localStorage.getItem('token') !== null && this.$q.localStorage.getItem('token') !== undefined">
+          <q-btn @click="logout()" class="q-ma-xs" color="black" label="Logout" />
+        </div>
+        <div v-else>
+          <q-btn @click="openCadastrarUsuarioModal()" class="q-ma-xs" color="black" label="Registrar Usuário" />
+          <q-btn @click="openLoginModal()" class="q-ma-xs" color="black" label="Login" />
+        </div>
       </q-toolbar>
     </q-header>
+
+    <q-dialog v-model="showConfigurarUrlModal" persistent>
+      <q-card style="width: 100%;">
+        <q-card-section>
+          <div class="text-h6">Configurar URL</div>
+        </q-card-section>
+
+        <q-card-section>
+            <div class="row items-start q-gutter-xs">
+              <q-input
+                    class="col-xs-12 col-sm-12 col-md-12"
+                    v-model="url"
+                    label="URL"
+                    color="black"
+                    outlined
+              />
+              <div class="text-subtitle1">Ex.: http://127.0.0.1:8000</div>
+            </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <div style="q-gutter-xs">
+            <q-btn flat @click="usarUrlPadrao()" class="q-ma-xs" color="black" label="Usar Padrão" />
+            <q-btn flat label="Cancelar" color="black" v-close-popup />
+            <q-btn @click="salvarUrl()" label="Salvar" color="green"/>
+          </div>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <q-dialog v-model="showCadastrarUsuarioModal" @hide="clearUsuarioData()" persistent>
       <q-card style="width: 100%;">
@@ -73,7 +108,7 @@
                     outlined
                     :rules="[val => !!val || 'campo obrigatorio']"
               />
-              <q-select v-model="usuario.tipo"
+              <q-select v-model.number="usuario.tipo"
                         :options="tiposUsuario"
                         :option-label="(props) => props.nome"
                         :rules="[val => !!val || 'campo obrigatorio']"
@@ -87,12 +122,13 @@
                         :option-label="(props) => props.nome"
                         :rules="[val => !!val || 'campo obrigatorio']"
                         class="col-xs-12 col-sm-12 col-md-11"
-                        label="Tipo de Usuário"
+                        label="Doação"
                         color="black"
                         multiple
                         outlined
                         use-chips
                         />
+              <div class="text-subtitle1">* Todos os campos são obrigatórios</div>
             </div>
         </q-card-section>
 
@@ -153,8 +189,10 @@ export default {
   name: 'MainLayout',
   data () {
     return {
+      showConfigurarUrlModal: false,
       showCadastrarUsuarioModal: false,
       showLoginModal: false,
+      url: '',
       usuario: {
         nome: '',
         cpf: '',
@@ -170,18 +208,53 @@ export default {
         {value: 1, nome: 'Receptor'}
       ],
       tiposDoacao: [
-        {value: 'CESTA, ', nome: 'Cesta'},
-        {value: 'REMEDIO, ', nome: 'Remédio'},
-        {value: 'ROUPA, ', nome: 'Roupa'}
+        {value: 'CESTA', nome: 'Cesta'},
+        {value: 'REMEDIO', nome: 'Remédio'},
+        {value: 'ROUPA', nome: 'Roupa'}
       ]
     }
   },
   methods: {
+    openConfigurarUrlModal() {
+      this.showConfigurarUrlModal = true
+    },
     openCadastrarUsuarioModal() {
       this.showCadastrarUsuarioModal = true
     },
     openLoginModal() {
       this.showLoginModal = true
+    },
+    usarUrlPadrao() {
+      this.$q.localStorage.remove('url')
+      this.url = ''
+
+      this.$router.go()
+    },
+    salvarUrl() {
+      if(this.url !== '') {
+        this.$q.localStorage.set('url', this.url)
+      }
+
+      this.showConfigurarUrlModal = false
+      this.$router.go()
+    },
+    resolveTipoDoacao() {
+      console.log('usuario tipo doacao')
+      console.log(this.usuario.tipo_doacao)
+
+      let doacoesStringfied = ''
+      let counter = 0
+      this.usuario.tipo_doacao.forEach(doacao => {
+        if(counter === 0) {
+          doacoesStringfied = doacoesStringfied + doacao.value
+          counter++
+        } else {
+          doacoesStringfied = doacoesStringfied + ', ' + doacao.value
+          counter++
+        }
+      })
+
+      return doacoesStringfied
     },
     async cadastrarusuario() {
       if(!this.validadeUsuarioData()) {
@@ -204,7 +277,7 @@ export default {
             telefone: this.usuario.telefone,
             endereco: this.usuario.endereco,
             tipo: this.usuario.tipo.value,
-            tipo_doacao: this.usuario.tipo_doacao
+            tipo_doacao: this.resolveTipoDoacao()
           }
         }).then(response => {
             console.log('---CREATE USER RESPONSE--')
@@ -248,6 +321,8 @@ export default {
             console.log('---RESPONSE LOGIN--')
             console.log(response)
 
+            this.$q.localStorage.set('usuario', response.usuario)
+            this.$q.cookies.set('token', reponse.token)
             this.showLoginModal = false
           }).catch(error => {
             console.log(error)
@@ -260,6 +335,29 @@ export default {
             })
           })
       }
+    },
+    async logout() {
+      await this.$axios({
+          method: 'post',
+          url: '/logout',
+          headers: {
+            token: this.$q.cookies.get('token')
+          }
+        }).then(response => {
+            console.log('---RESPONSE LOGOUT--')
+            console.log(response)
+
+            this.$q.localStorage.remove('usuario')
+            this.$q.cookies.remove('token')
+          }).catch(error => {
+            console.log(error)
+
+            this.$q.notify({
+              position: 'top',
+              message: 'Ocorreu algum erro! Tente novamente',
+              color: 'red'
+            })
+          })
     },
     validadeUsuarioData() {
       return (
@@ -288,6 +386,16 @@ export default {
       this.usuario.endereco = ''
       this.usuario.tipo = -1
       this.usuario.tipo_doacao = []
+    },
+    clearUrlData() {
+      this.url = ''
+    }
+  },
+  mounted: function() {
+    console.log('aqui')
+    console.log(this.$q.localStorage.getItem('url'))
+    if(this.$q.localStorage.getItem('url') !== null && this.$q.localStorage.getItem('url') !== undefined) {
+      this.url = this.$q.localStorage.getItem('url')
     }
   }
 }
