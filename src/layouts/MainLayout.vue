@@ -7,12 +7,14 @@
                 mobile-arrows
                 outside-arrows
                 inline-label>
-            Doar Faz Bem
-          <q-route-tab to="/" name="principal" icon="home" label="Principal" />
+          Doar Faz Bem
+          <div v-if="this.$q.cookies.get('token') !== null && this.$q.cookies.get('token') !== undefined">
+            <q-route-tab to="/" name="principal" icon="home" label="Principal" />
+          </div>
         </q-tabs>
         <q-space />
         <q-btn @click="openConfigurarUrlModal()" class="q-ma-xs" color="black" label="Configurar Endereço" />
-        <div v-if="this.$q.localStorage.getItem('token') !== null && this.$q.localStorage.getItem('token') !== undefined">
+        <div v-if="this.$q.cookies.get('token') !== null && this.$q.cookies.get('token') !== undefined">
           <q-btn @click="logout()" class="q-ma-xs" color="black" label="Logout" />
         </div>
         <div v-else>
@@ -281,7 +283,7 @@ export default {
           }
         }).then(response => {
             console.log('---CREATE USER RESPONSE--')
-            console.log(response)
+            console.log(response.data)
 
             this.showCadastrarUsuarioModal = false
 
@@ -319,11 +321,13 @@ export default {
           }
         }).then(response => {
             console.log('---RESPONSE LOGIN--')
-            console.log(response)
+            console.log(response.data)
 
-            this.$q.localStorage.set('usuario', response.usuario)
-            this.$q.cookies.set('token', reponse.token)
+            this.$q.localStorage.set('usuario', response.data.usuario)
+            this.$q.cookies.set('token', response.data.token)
             this.showLoginModal = false
+
+            this.$router.go()
           }).catch(error => {
             console.log(error)
 
@@ -345,10 +349,12 @@ export default {
           }
         }).then(response => {
             console.log('---RESPONSE LOGOUT--')
-            console.log(response)
+            console.log(response.data)
 
             this.$q.localStorage.remove('usuario')
             this.$q.cookies.remove('token')
+
+            this.$router.go()
           }).catch(error => {
             console.log(error)
 
