@@ -1,10 +1,23 @@
 
 const routes = [
   {
+    path: '/inicio',
+    name: 'inicio',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/Inicio.vue') }
+    ]
+  },
+  {
+    meta: { requiresAuth: true },
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/Index.vue') }
+      {
+        path: 'principal',
+        name: 'principal',
+        component: () => import('pages/Principal.vue')
+      }
     ]
   },
 

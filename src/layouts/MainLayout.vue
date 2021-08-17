@@ -119,7 +119,7 @@
                         color="black"
                         outlined 
                         />
-              <q-select v-model="usuario.tipo_doacao"
+              <!-- <q-select v-model="usuario.tipo_doacao"
                         :options="tiposDoacao"
                         :option-label="(props) => props.nome"
                         :rules="[val => !!val || 'campo obrigatorio']"
@@ -129,7 +129,7 @@
                         multiple
                         outlined
                         use-chips
-                        />
+                        /> -->
               <div class="text-subtitle1">* Todos os campos são obrigatórios</div>
             </div>
         </q-card-section>
@@ -203,17 +203,17 @@ export default {
         telefone: '',
         endereco: '',
         tipo: -1,
-        tipo_doacao: []
+        // tipo_doacao: []
       },
       tiposUsuario: [
         {value: 0, nome: 'Doador'},
         {value: 1, nome: 'Receptor'}
       ],
-      tiposDoacao: [
-        {value: 'CESTA', nome: 'Cesta'},
-        {value: 'REMEDIO', nome: 'Remédio'},
-        {value: 'ROUPA', nome: 'Roupa'}
-      ]
+      // tiposDoacao: [
+      //   {value: 'CESTA', nome: 'Cesta'},
+      //   {value: 'REMEDIO', nome: 'Remédio'},
+      //   {value: 'ROUPA', nome: 'Roupa'}
+      // ]
     }
   },
   methods: {
@@ -278,8 +278,8 @@ export default {
             email: this.usuario.email,
             telefone: this.usuario.telefone,
             endereco: this.usuario.endereco,
-            tipo: this.usuario.tipo.value,
-            tipo_doacao: this.resolveTipoDoacao()
+            tipo: this.usuario.tipo.value
+            // tipo_doacao: this.resolveTipoDoacao()
           }
         }).then(response => {
             console.log('---CREATE USER RESPONSE--')
@@ -327,7 +327,8 @@ export default {
             this.$q.cookies.set('token', response.data.token)
             this.showLoginModal = false
 
-            this.$router.go()
+          }).then(() => {
+            this.$router.push('/principal')
           }).catch(error => {
             console.log(error)
 
@@ -373,8 +374,8 @@ export default {
         this.usuario.email !== '' &&
         this.usuario.telefone !== '' &&
         this.usuario.endereco !== '' &&
-        this.usuario.tipo !== -1 &&
-        this.usuario.tipo_doacao.length > 0
+        this.usuario.tipo !== -1
+        // this.usuario.tipo_doacao.length > 0
       )
     },
     validadeLoginData() {
@@ -391,14 +392,14 @@ export default {
       this.usuario.telefone = ''
       this.usuario.endereco = ''
       this.usuario.tipo = -1
-      this.usuario.tipo_doacao = []
+      // this.usuario.tipo_doacao = []
     },
     clearUrlData() {
       this.url = ''
     }
   },
   mounted: function() {
-    console.log('aqui')
+    console.log('aqui no mounted')
     console.log(this.$q.localStorage.getItem('url'))
     if(this.$q.localStorage.getItem('url') !== null && this.$q.localStorage.getItem('url') !== undefined) {
       this.url = this.$q.localStorage.getItem('url')

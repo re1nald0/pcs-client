@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import { Cookies } from 'quasar'
 
 import routes from './routes'
 
@@ -24,6 +25,18 @@ export default function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> publicPath
     mode: process.env.VUE_ROUTER_MODE,
     base: process.env.VUE_ROUTER_BASE
+  })
+
+  Router.beforeEach((to, from, next) => {
+    if (to.matched.some(route => route.meta.requiresAuth)) {
+      if (Cookies.has('token')) {
+        next()
+      } else {
+        next('/inicio')
+      }
+    } else {
+      next()
+    }
   })
 
   return Router
