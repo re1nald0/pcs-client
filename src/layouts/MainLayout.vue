@@ -2,14 +2,13 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
-        <q-tabs v-model="tab1"
-                align="justify"
+        <q-tabs align="justify"
                 mobile-arrows
                 outside-arrows
                 inline-label>
           Doar Faz Bem
           <div v-if="this.$q.cookies.get('token') !== null && this.$q.cookies.get('token') !== undefined">
-            <q-route-tab to="/" name="principal" icon="home" label="Principal" />
+            <q-route-tab to="/principal" name="principal" icon="home" label="Principal" />
           </div>
         </q-tabs>
         <q-space />
@@ -214,6 +213,15 @@ export default {
       //   {value: 'REMEDIO', nome: 'Remédio'},
       //   {value: 'ROUPA', nome: 'Roupa'}
       // ]
+      usuarioLoggado: {
+        nome: '',
+        cpf: '',
+        senha: '',
+        email: '',
+        telefone: '',
+        endereco: '',
+        tipo: -1,
+      },
     }
   },
   methods: {
@@ -403,6 +411,10 @@ export default {
     console.log(this.$q.localStorage.getItem('url'))
     if(this.$q.localStorage.getItem('url') !== null && this.$q.localStorage.getItem('url') !== undefined) {
       this.url = this.$q.localStorage.getItem('url')
+    }
+
+    if(this.$q.localStorage.getItem('usuario') !== null && this.$q.localStorage.getItem('usuario') !== undefined) {
+      this.usuarioLoggado = this.$q.localStorage.getItem('usuario')
     }
   }
 }
