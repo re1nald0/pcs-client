@@ -5,10 +5,17 @@
         <q-tabs align="justify"
                 mobile-arrows
                 outside-arrows
-                inline-label>
+                inline-label
+                >
           Doar Faz Bem
           <div v-if="this.$q.cookies.get('token') !== null && this.$q.cookies.get('token') !== undefined">
             <q-route-tab to="/principal" name="principal" icon="home" label="Principal" />
+          </div>
+          <div v-if="this.$q.cookies.get('token') !== null && this.$q.cookies.get('token') !== undefined && this.usuarioLoggado.tipo === 2">
+            <q-route-tab to="/usuarios" name="usuarios" icon="people" label="Usuários" />
+          </div>
+          <div v-if="this.$q.cookies.get('token') !== null && this.$q.cookies.get('token') !== undefined && this.usuarioLoggado.tipo === 2">
+            <q-route-tab to="/fila" name="fila" icon="list" label="Fila" />
           </div>
         </q-tabs>
         <q-space />
@@ -190,6 +197,7 @@ export default {
   name: 'MainLayout',
   data () {
     return {
+      // tab1: 'principal',
       showConfigurarUrlModal: false,
       showCadastrarUsuarioModal: false,
       showLoginModal: false,
@@ -333,6 +341,7 @@ export default {
 
             this.$q.localStorage.set('usuario', response.data.usuario)
             this.$q.cookies.set('token', response.data.token)
+            this.usuarioLoggado = response.data.usuario
             this.showLoginModal = false
 
           }).then(() => {

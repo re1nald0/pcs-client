@@ -47,6 +47,28 @@
                  @click="showCadastrarSolicitacao = true"
                  />
         </template>
+
+        <template v-slot:body-cell-buscarDoacoes="props">
+          <q-td :props="props">
+              <q-btn dense round flat color="black" @click.stop="openBuscarDoacoes(props)" icon="explore"></q-btn>
+          </q-td>
+        </template>
+      </q-table>
+    </div>
+
+    <div v-if="usuarioLoggado.tipo === 2" class="row q-pa-md">
+      <q-table
+        title="Lista de Solicitações"
+        :data="listaSolicitacoes"
+        :columns="solicitacoesAdminTableColumns"
+        row-key="name"
+        class="full-width"
+      >
+        <template v-slot:body-cell-confirmarRecebimento="props">
+          <q-td :props="props">
+              <q-btn dense round flat color="black" @click.stop="confirmarRecebimento(props)" icon="done"></q-btn>
+          </q-td>
+        </template>
       </q-table>
     </div>
 
@@ -233,6 +255,37 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="showBuscarDoacoes" @hide="clearSolicitacaoData()" persistent>
+      <q-card style="width: 100%;">
+        <q-card-section>
+          <div class="text-h6">Doações Disponíveis</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-table
+            title="Doações"
+            :data="doacoesDisponiveis"
+            :columns="buscarDoacoesTableColumns"
+            row-key="name"
+            class="full-width"
+            >
+              <template v-slot:body-cell-aceitar="props">
+                <q-td :props="props">
+                    <q-btn dense round flat color="black" @click.stop="aceitarDoacao(props)" icon="done"></q-btn>
+                </q-td>
+              </template>
+            </q-table>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <div style="q-gutter-xs">
+            <q-btn flat label="Cancelar" color="black" v-close-popup />
+            <!-- <q-btn @click="cadastrarSolicitacao()" label="Salvar" color="green"/> -->
+          </div>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
@@ -240,9 +293,12 @@
 export default {
   data() {
     return {
+      usuarios: [],
       showCadastrarDoacao: false,
       showAtualizarDoacao: false,
       showCadastrarSolicitacao: false,
+      showBuscarDoacoes: false,
+      doacoesDisponiveis: [],
       usuarioLoggado: {
         nome: '',
         cpf: '',
@@ -286,6 +342,8 @@ export default {
           format: val => `${val}`
         },
         { name: 'quantidade', align: 'center', label: 'Quantidade', field: row => row.quantidade_total },
+        { name: 'local', align: 'center', label: 'Local para Retirada', field: row => row.local },
+        { name: 'data', align: 'center', label: 'Data para Retirada', field: row => row.data },
         { name: 'editar', align: 'center', label: 'Editar Doação', field: 'editar' },
         { name: 'remover', align: 'center', label: 'Remover Doação', field: 'remover' }
       ],
@@ -300,9 +358,44 @@ export default {
         },
         { name: 'data', align: 'center', label: 'Data', field: row => row.data },
         { name: 'status', align: 'center', label: 'Status', field: row => row.status },
-        // { name: 'editar', align: 'center', label: 'Editar Doação', field: 'editar' },
+        { name: 'buscarDoacoes', align: 'center', label: 'Buscar Doações', field: 'buscarDoacoes' },
         // { name: 'remover', align: 'center', label: 'Remover Doação', field: 'remover' }
       ],
+      buscarDoacoesTableColumns: [
+        {
+          name: 'tipo_doacao',
+          required: true,
+          label: 'Tipo de Doação',
+          align: 'left',
+          field: row => row.tipo_doacao,
+          format: val => `${val}`
+        },
+        { name: 'local', align: 'center', label: 'Local para Retirada', field: row => row.local },
+        { name: 'data', align: 'center', label: 'Data para Retirada', field: row => row.data },
+        { name: 'aceitar', align: 'center', label: 'Aceitar', field: 'aceitar' },
+      ],
+      solicitacoesAdminTableColumns: [
+        {
+          name: 'receptor',
+          align: 'center',
+          label: 'Receptor',
+          field: row => {
+            const index = this.usuarios.map(function (o) { return o.id }).indexOf(row.receptorId)
+            return this.usuarios[index].nome
+          }
+        },
+        {
+          name: 'tipo_doacao',
+          required: true,
+          label: 'Tipo de Solicitação',
+          align: 'left',
+          field: row => row.tipo_doacao,
+          format: val => `${val}`
+        },
+        { name: 'data', align: 'center', label: 'Data', field: row => row.data },
+        { name: 'status', align: 'center', label: 'Status', field: row => row.status === 0 ? 'Não Confirmada' : 'Confirmada' },
+        { name: 'confirmarRecebimento', align: 'center', label: 'Confirmar Recebimento', field: 'confirmarRecebimento' },
+      ]
     }
   },
   methods: {
@@ -329,6 +422,179 @@ export default {
             })
           })
     },
+    async getAllSolicitacoes() {
+      const user = this.$q.localStorage.getItem('usuario')
+      await this.$axios({
+          method: 'get',
+          url: '/solicitacoes',
+          headers: {
+            token: this.$q.cookies.get('token')
+          }
+        }).then(response => {
+            console.log('---GET ALL SOLICITACOES RESPONSE--')
+            console.log(response.data)
+            
+            this.listaSolicitacoes = response.data
+          }).catch(error => {
+            console.log(error)
+
+            this.$q.notify({
+              position: 'top',
+              message: 'Ocorreu algum erro!',
+              color: 'red'
+            })
+          })
+    },
+    async confirmarRecebimento(props) {
+      console.log(props)
+      let solicitacao = props.row
+
+      if(props.row.status === 0) {
+        this.$q.dialog({
+          title: 'Confirmar',
+          color: 'green',
+          message: 'Confirma o recebimento desta doação?',
+          cancel: true,
+          persistent: true
+        }).onOk(async (props) => {
+          await this.$axios({
+            method: 'put',
+            url: '/solicitacoes',
+            headers: {
+              token: this.$q.cookies.get('token')
+            },
+            data: {
+              id: solicitacao.id,
+              tipo_doacao: solicitacao.tipo_doacao,
+              data: solicitacao.data,
+              status: 1,
+              receptorId: solicitacao.receptorId,
+              doacaoId: solicitacao.doacaoId
+            }
+          })
+            .then(response => {
+              console.log(response)
+
+              const solicitacao_index = this.listaSolicitacoes.map(function (o) { return o.id }).indexOf(response.data.id)
+              this.listaSolicitacoes[solicitacao_index].status = 1
+              
+              this.$q.notify({
+                position: 'top',
+                message: 'Doação confirmada!',
+                color: 'green'
+              })
+            })
+            .catch(error => {
+              console.log(error)
+
+              this.$q.notify({
+                position: 'top',
+                message: 'Erro ao confirmar doacao!',
+                color: 'red'
+              })
+            })
+        }).onCancel(() => {})
+          .onDismiss(() => {})
+      } else {
+        this.$q.notify({
+          position: 'top',
+          message: 'Doação já confirmada!',
+          color: 'black'
+        })
+      }
+    },
+    async openBuscarDoacoes(props) {
+      console.log(props)
+      this.solicitacaoData.id = props.row.id
+      this.solicitacaoData.tipo_doacao = props.row.tipo_doacao
+      this.solicitacaoData.data = props.row.data
+      this.solicitacaoData.status = 0
+      this.solicitacaoData.receptorId = props.row.receptorId
+
+      const user = this.$q.localStorage.getItem('usuario')
+      await this.$axios({
+          method: 'get',
+          url: '/solicitacoes/' + props.row.id + '/disponibilidade',
+          headers: {
+            token: this.$q.cookies.get('token')
+          }
+        }).then(response => {
+            console.log('---GET DISPONIBILIDADE DOACOES RESPONSE--')
+            console.log(response.data)
+            
+            this.doacoesDisponiveis = response.data
+            this.showBuscarDoacoes = true
+          }).catch(error => {
+            console.log(error.response)
+
+            if(error.response.status === 400) {
+              this.$q.notify({
+                position: 'top',
+                message: 'Não há doações disponíveis ou você já recebeu nesse mês!',
+                color: 'black'
+              })
+            } else {
+              this.$q.notify({
+                position: 'top',
+                message: 'Ocorreu algum erro!',
+                color: 'red'
+              })
+            }
+          })
+    },
+    async aceitarDoacao(props) {
+      console.log(props)
+
+      this.solicitacaoData.doacaoId = props.row.id
+      this.$q.dialog({
+        title: 'Confirmar',
+        color: 'green',
+        message: 'Confirma a escolha desta doação?',
+        cancel: true,
+        persistent: true
+      }).onOk(async (props) => {
+        await this.$axios({
+          method: 'put',
+          url: '/solicitacoes',
+          headers: {
+            token: this.$q.cookies.get('token')
+          },
+          data: {
+            id: this.solicitacaoData.id,
+            tipo_doacao: this.solicitacaoData.tipo_doacao,
+            data: this.solicitacaoData.data,
+            status: this.solicitacaoData.status,
+            receptorId: this.solicitacaoData.receptorId,
+            doacaoId: this.solicitacaoData.doacaoId
+          }
+        })
+          .then(response => {
+            console.log(response)
+
+            this.$q.notify({
+              position: 'top',
+              message: 'Doação escolhida!',
+              color: 'green'
+            })
+
+            this.doacoesDisponiveis = []
+            this.showBuscarDoacoes = false
+          })
+          .catch(error => {
+            console.log(error)
+
+            this.$q.notify({
+              position: 'top',
+              message: 'Erro ao escolher doacao!',
+              color: 'red'
+            })
+
+            this.doacoesDisponiveis = []
+            this.showBuscarDoacoes = false
+          })
+      }).onCancel(() => {})
+        .onDismiss(() => {})
+    },
     async cadastrarDoacao() {
       console.log(this.doacaoData)
       if(!this.validadeDoacaoData()) {
@@ -346,7 +612,7 @@ export default {
             token: this.$q.cookies.get('token')
           },
           data: {
-            id: 0,
+            id: null,
             doadorId: user.id,
             tipo_doacao: this.doacaoData.tipo_doacao.value,
             data: this.doacaoData.data,
@@ -444,8 +710,6 @@ export default {
         cancel: true,
         persistent: true
       }).onOk(async (props) => {
-        this.listaDoacoes.splice(index, 1)
-
         await this.$axios({
           method: 'delete',
           url: '/doacoes/' + id,
@@ -456,6 +720,7 @@ export default {
           .then(response => {
             console.log(response)
 
+            this.listaDoacoes.splice(index, 1)
             this.$q.notify({
               position: 'top',
               message: 'Doação removida!',
@@ -514,12 +779,13 @@ export default {
             token: this.$q.cookies.get('token')
           },
           data: {
-            id: 0,
+            id: null,
             tipo_doacao: this.solicitacaoData.tipo_doacao.value,
             data: this.solicitacaoData.data,
-            status: this.solicitacaoData.status,
+            status: false,
             local: this.doacaoData.local,
             receptorId: this.usuarioLoggado.id,
+            doacaoId: null
           }
         }).then(response => {
             console.log('---CREATE SOLICITACAO RESPONSE--')
@@ -605,15 +871,42 @@ export default {
       this.solicitacaoData.status = 0
       this.solicitacaoData.receptorId = 0
       this.solicitacaoData.doacaoId = 0
-    }
+    },
+    async getUsuarios() {
+      await this.$axios({
+          method: 'get',
+          url: '/usuarios',
+          headers: {
+            token: this.$q.cookies.get('token')
+          }
+        }).then(response => {
+            console.log('---GET USERS RESPONSE--')
+            console.log(response.data)
+            
+            this.usuarios = response.data
+          }).catch(error => {
+            console.log(error)
+
+            this.$q.notify({
+              position: 'top',
+              message: 'Ocorreu algum erro!',
+              color: 'red'
+            })
+          })
+    },
   },
   mounted: async function() {
+    this.getUsuarios()
     // console.log(this.$q.localStorage.getItem('usuario'))
     this.usuarioLoggado = this.$q.localStorage.getItem('usuario')
     if(this.usuarioLoggado.tipo === 0) {
       await this.getDoacoes()
     } else {
       await this.getSolicitacoes()
+    }
+
+    if(this.usuarioLoggado.tipo === 2) {
+      await this.getAllSolicitacoes()
     }
   }
 }

@@ -17,6 +17,16 @@ const routes = [
         path: 'principal',
         name: 'principal',
         component: () => import('pages/Principal.vue')
+      },
+      {
+        path: 'usuarios',
+        name: 'usuarios',
+        component: () => import('pages/Usuarios.vue')
+      },
+      {
+        path: 'fila',
+        name: 'fila',
+        component: () => import('pages/Fila.vue')
       }
     ]
   },
