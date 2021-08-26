@@ -327,7 +327,7 @@ export default {
           }
         }).then(response => {
             console.log('---CREATE USER RESPONSE--')
-            console.log(response.data.usuario)
+            console.log(response.data)
 
             this.showCadastrarUsuarioModal = false
 
@@ -337,7 +337,7 @@ export default {
               color: 'green'
             })
 
-            this.usuarios.push(response.data.usuario)
+            this.usuarios.push(response.data)
           }).catch(error => {
             console.log(error)
 
